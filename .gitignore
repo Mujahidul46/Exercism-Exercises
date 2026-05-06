@@ -1,0 +1,20 @@
+# Build results
+**/bin/
+**/obj/
+
+# Visual Studio
+.vs/
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# NuGet
+**/packages/
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
