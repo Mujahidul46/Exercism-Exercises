@@ -1,7 +1,5 @@
-﻿using System;
-
-// Payment cards are not working. It is never showing the correct value for playerAPenalty or playerBPenalty; it just shows 0.
-// As a way to troubleshoot, you can simulate a game where the first card is a payment card, to get that functionality working.
+﻿// the game state where the game finishes and doesn't look is correctly implemented
+// Need to implement rounds (aka tricks) and then the game state where its a continuous loop
 
 public static class Camicia
 {
@@ -54,16 +52,30 @@ public static class Camicia
 
         while (gameActive)
         {
-            displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty);
+            if (playerAPile.Count == 0 && isPlayerAPayingPenalty)
+            {
+                gameActive = false;
+                while (centralPile.Count > 0)
+                {
+                    string lastCardRemovedFromCentralPile = centralPile.Dequeue();
+                    playerBPile.Enqueue(lastCardRemovedFromCentralPile);
+                }
+                displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                break;
+            }
+            else if (playerBPile.Count == 0 && isPlayerBPayingPenalty)
+            {
+                gameActive = false;
+                while (centralPile.Count > 0)
+                {
+                    string lastCardRemovedFromCentralPile = centralPile.Dequeue();
+                    playerAPile.Enqueue(lastCardRemovedFromCentralPile);
+                }
+                displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                break;
+            }
 
-            if (playerAPile.Count == 0)
-            {
-                gameActive = false;
-            }
-            else if (playerBPile.Count == 0)
-            {
-                gameActive = false;
-            }
+            displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
 
             if (playerATurn)
             {
@@ -74,24 +86,41 @@ public static class Camicia
                     isPlayerBPayingPenalty = true;
                 }
 
-                lastPlayedCardByPlayerA = playerAPile.Dequeue(); // Remove from player A's deck
-                centralPile.Enqueue(lastPlayedCardByPlayerA); // Put the removed card in the central pile
-
                 if (isPlayerAPayingPenalty)
                 {
                     while (playerAPenalty > 0)
                     {
-                        playerAPenalty -= 1;
-                        if (playerAPenalty <= 0)
+                        if (playerAPile.Peek() == "J" || playerAPile.Peek() == "Q" ||
+                            playerAPile.Peek() == "K" || playerAPile.Peek() == "A")
                         {
+                            playerBPenalty = paymentCardMapping[playerAPile.Peek()];
+                            isPlayerBPayingPenalty = true;
                             isPlayerAPayingPenalty = false;
+                            lastPlayedCardByPlayerA = playerAPile.Dequeue(); // Remove from player A's deck
+                            centralPile.Enqueue(lastPlayedCardByPlayerA); // Put the removed card in the central pile
+                            playerATurn = false;
+                            playerBTurn = true;
+                            break;
                         }
+                        playerATurn = true; // maybe not necessary
+                        playerBTurn = false; // maybe not necessary
+                        playerAPenalty -= 1;
+                        //if (playerAPenalty <= 0)
+                        //{
+                        //    isPlayerAPayingPenalty = false;
+                        //}
+                        lastPlayedCardByPlayerA = playerAPile.Dequeue(); // Remove from player A's deck
+                        centralPile.Enqueue(lastPlayedCardByPlayerA); // Put the removed card in the central pile
+                        displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
                     }
                 }
-
-                playerATurn = false;
-                playerBTurn = true;
-
+                else if (!isPlayerAPayingPenalty && playerATurn)
+                {
+                    lastPlayedCardByPlayerA = playerAPile.Dequeue(); // Remove from player A's deck
+                    centralPile.Enqueue(lastPlayedCardByPlayerA); // Put the removed card in the central pile
+                    playerATurn = false;
+                    playerBTurn = true;
+                }
             }
 
             // REVERSE ABOVE LOGIC
@@ -104,24 +133,43 @@ public static class Camicia
                     isPlayerAPayingPenalty = true;
                 }
 
-                lastPlayedCardByPlayerB = playerBPile.Dequeue(); // Remove from player B's deck
-                centralPile.Enqueue(lastPlayedCardByPlayerB); // Put the removed card in the central pile
-
                 if (isPlayerBPayingPenalty)
                 {
                     while (playerBPenalty > 0)
                     {
-                        playerBPenalty -= 1;
-                        if (playerBPenalty <= 0)
+                        
+                        if (playerBPile.Peek() == "J" || playerBPile.Peek() == "Q" ||
+                            playerBPile.Peek() == "K" || playerBPile.Peek() == "A")
                         {
+                            playerAPenalty = paymentCardMapping[playerBPile.Peek()];
+                            isPlayerAPayingPenalty = true;
                             isPlayerBPayingPenalty = false;
+                            lastPlayedCardByPlayerB = playerBPile.Dequeue(); // Remove from player B's deck
+                            centralPile.Enqueue(lastPlayedCardByPlayerB); // Put the removed card in the central pile
+                            playerATurn = true;
+                            playerBTurn = false;
+                            break;
                         }
+                        playerBTurn = true; // maybe not necessary
+                        playerATurn = false; // maybe not necessary
+                        playerBPenalty -= 1;
+                        //if (playerBPenalty <= 0)
+                        //{
+                        //    isPlayerBPayingPenalty = false;
+                        //}
+                        lastPlayedCardByPlayerB = playerBPile.Dequeue(); // Remove from player B's deck
+                        centralPile.Enqueue(lastPlayedCardByPlayerB); // Put the removed card in the central pile
+                        displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                    
                     }
                 }
-
-                playerBTurn = false;
-                playerATurn = true;
-
+                else if (!isPlayerBPayingPenalty && playerBTurn)
+                {
+                    lastPlayedCardByPlayerB = playerBPile.Dequeue(); // Remove from player B's deck
+                    centralPile.Enqueue(lastPlayedCardByPlayerB); // Put the removed card in the central pile
+                    playerBTurn = false;
+                    playerATurn = true;
+                }
             }
         }
 
@@ -144,21 +192,29 @@ public static class Camicia
         return new GameResult(GameStatus.Finished, 0, 0);
     }
 
-    public static void displayRow(int round, Queue<string> playerAPile, Queue<string> playerBPile, Queue<string> centralPile, int playerAPenalty, int playerBPenalty)
+    public static void displayRow(int round, Queue<string> playerAPile, Queue<string> playerBPile, Queue<string> centralPile, int playerAPenalty, int playerBPenalty, bool isPlayerAPayingPenalty, bool isPlayerBPayingPenalty)
     {
-        string penaltyToDisplay = "-";
-        if (playerAPenalty > 0)
+        string penaltyToDisplay;
+        string playerPayingPenalty;
+        if (playerAPenalty > 0 && isPlayerAPayingPenalty)
         {
             penaltyToDisplay = playerAPenalty.ToString();
+            playerPayingPenalty = "Player A: ";
         }
-        else if (playerBPenalty > 0)
+        else if (playerBPenalty > 0 && isPlayerBPayingPenalty)
         {
             penaltyToDisplay = playerBPenalty.ToString();
+            playerPayingPenalty = "Player B: ";
+        }
+        else
+        {
+            penaltyToDisplay = "-";
+            playerPayingPenalty = "";
         }
 
         Console.WriteLine("---------------------------------------------------------------------------------------");
         Console.WriteLine();
-        Console.WriteLine($"{round,3}   | {string.Join(" ", playerAPile),16} | {string.Join(" ", playerBPile),18} | {string.Join(" ", centralPile),10}       | {playerAPenalty,10}");
+        Console.WriteLine($"{round,3}   | {string.Join(" ", playerAPile),16} | {string.Join(" ", playerBPile),18} | {string.Join(" ", centralPile),10}       | {playerPayingPenalty}{penaltyToDisplay}");
         Console.WriteLine();
         Console.WriteLine("Press ENTER to continue");
         Console.ReadLine();
