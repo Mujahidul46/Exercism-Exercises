@@ -1,5 +1,4 @@
-﻿// the game state where the game finishes and doesn't look is correctly implemented
-// Need to implement rounds (aka tricks) and then the game state where its a continuous loop
+﻿// TODO: Detect a loop
 
 public static class Camicia
 {
@@ -9,11 +8,12 @@ public static class Camicia
         Loop // Game is in an infinite loop because the non-number cards are identical to what they were earlier during the game
     }
 
-    public record GameResult(GameStatus Status, int Tricks, int Cards);
+    public record GameResult(GameStatus Status, int round, int Cards);
 
     public static void Main(string[] args)
     {
-        SimulateGame(["2", "A", "7", "8", "Q", "10"], ["3", "4", "5", "6", "K", "9", "J"]);
+        //SimulateGame(["2", "A", "7", "8", "Q", "10"], ["3", "4", "5", "6", "K", "9", "J"]); // this game finished
+        SimulateGame(["J", "2", "3"], ["4", "J", "5"]); // this game loops
         Console.ReadLine();
     }
 
@@ -22,7 +22,7 @@ public static class Camicia
         bool playerATurn = true;
         bool playerBTurn = false;
         bool gameActive = true;
-        int round = 1; // Round will increase every time there is a trick
+        int round = 1; // round will increase every time there is a trick 
 
         
         // 2 types of cards: Number card and payment card
@@ -38,6 +38,8 @@ public static class Camicia
         Queue<string> playerBPile = new Queue<string>(playerB);
         Queue<string> centralPile = new Queue<string>();
 
+        int numOfCards = playerAPile.Count + playerBPile.Count;
+
         int playerAPenalty = 0;
         int playerBPenalty = 0;
 
@@ -47,8 +49,15 @@ public static class Camicia
         bool isPlayerAPayingPenalty = false;
         bool isPlayerBPayingPenalty = false;
 
+        bool playerAShouldTakeCentralPile = false;
+        bool playerBShouldTakeCentralPile = false;
 
-        Console.WriteLine("Round |     Player A     |      Player B      |      Pile       |     Penalty Due      ");
+        GameStatus status = GameStatus.Finished; // default value
+
+
+        Console.WriteLine("round |     Player A     |      Player B      |      Pile       |     Penalty Due      ");
+
+        displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
 
         while (gameActive)
         {
@@ -60,6 +69,8 @@ public static class Camicia
                     string lastCardRemovedFromCentralPile = centralPile.Dequeue();
                     playerBPile.Enqueue(lastCardRemovedFromCentralPile);
                 }
+                round += 1;
+                status = GameStatus.Finished;
                 displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
                 break;
             }
@@ -71,21 +82,32 @@ public static class Camicia
                     string lastCardRemovedFromCentralPile = centralPile.Dequeue();
                     playerAPile.Enqueue(lastCardRemovedFromCentralPile);
                 }
+                round += 1;
+                status = GameStatus.Finished;
                 displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
                 break;
             }
 
-            displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
-
             if (playerATurn)
             {
-                if (playerAPile.Peek() == "J" || playerAPile.Peek() == "Q" ||
+                if (playerAShouldTakeCentralPile)
+                {
+                    while (centralPile.Count > 0)
+                    {
+                        string lastCardFromCentralPile = centralPile.Dequeue();
+                        playerAPile.Enqueue(lastCardFromCentralPile);
+                    }
+                    playerAShouldTakeCentralPile = false;
+                    round++;
+                    displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                }
+                else if (playerAPile.Peek() == "J" || playerAPile.Peek() == "Q" ||
                     playerAPile.Peek() == "K" || playerAPile.Peek() == "A")
                 {
                     playerBPenalty = paymentCardMapping[playerAPile.Peek()];
                     isPlayerBPayingPenalty = true;
                 }
-
+                // if one of the players is paying a penalty, and pay without interruption (i.e. they do not draw J/Q/K/A), then that's a trick, and the other player gets central pile.
                 if (isPlayerAPayingPenalty)
                 {
                     while (playerAPenalty > 0)
@@ -98,26 +120,40 @@ public static class Camicia
                             isPlayerAPayingPenalty = false;
                             lastPlayedCardByPlayerA = playerAPile.Dequeue(); // Remove from player A's deck
                             centralPile.Enqueue(lastPlayedCardByPlayerA); // Put the removed card in the central pile
+                            displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
                             playerATurn = false;
                             playerBTurn = true;
                             break;
                         }
-                        playerATurn = true; // maybe not necessary
-                        playerBTurn = false; // maybe not necessary
-                        playerAPenalty -= 1;
-                        //if (playerAPenalty <= 0)
-                        //{
-                        //    isPlayerAPayingPenalty = false;
-                        //}
-                        lastPlayedCardByPlayerA = playerAPile.Dequeue(); // Remove from player A's deck
-                        centralPile.Enqueue(lastPlayedCardByPlayerA); // Put the removed card in the central pile
-                        displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                        else if (playerAPenalty == 1) // this means the player is going to be able to pay their penalty without being interrupted (next card is number card)
+                        {
+                            lastPlayedCardByPlayerA = playerAPile.Dequeue(); // Remove from player A's deck
+                            centralPile.Enqueue(lastPlayedCardByPlayerA); // Put the removed card in the central pile
+                            playerAPenalty--;
+                            isPlayerAPayingPenalty = false;
+                            displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                            playerATurn = false;
+                            playerBTurn = true;
+                            playerBShouldTakeCentralPile = true;
+                        }
+                        else
+                        {
+                            playerAPenalty--;
+                            //if (playerAPenalty <= 0)
+                            //{
+                            //    isPlayerAPayingPenalty = false;
+                            //}
+                            lastPlayedCardByPlayerA = playerAPile.Dequeue(); // Remove from player A's deck
+                            centralPile.Enqueue(lastPlayedCardByPlayerA); // Put the removed card in the central pile
+                            displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                        }
                     }
                 }
                 else if (!isPlayerAPayingPenalty && playerATurn)
                 {
                     lastPlayedCardByPlayerA = playerAPile.Dequeue(); // Remove from player A's deck
                     centralPile.Enqueue(lastPlayedCardByPlayerA); // Put the removed card in the central pile
+                    displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
                     playerATurn = false;
                     playerBTurn = true;
                 }
@@ -126,18 +162,28 @@ public static class Camicia
             // REVERSE ABOVE LOGIC
             else if (playerBTurn)
             {
-                if (playerBPile.Peek() == "J" || playerBPile.Peek() == "Q" ||
+                if (playerBShouldTakeCentralPile)
+                {
+                    while (centralPile.Count > 0)
+                    {
+                        string lastCardFromCentralPile = centralPile.Dequeue();
+                        playerBPile.Enqueue(lastCardFromCentralPile);
+                    }
+                    round++;
+                    playerBShouldTakeCentralPile = false;
+                    displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                }
+                else if (playerBPile.Peek() == "J" || playerBPile.Peek() == "Q" ||
                     playerBPile.Peek() == "K" || playerBPile.Peek() == "A")
                 {
                     playerAPenalty = paymentCardMapping[playerBPile.Peek()];
                     isPlayerAPayingPenalty = true;
                 }
-
+                // if one of the players is paying a penalty, and pay without interruption (i.e. they do not draw J/Q/K/A), then that's a trick, and the other player gets central pile.
                 if (isPlayerBPayingPenalty)
                 {
                     while (playerBPenalty > 0)
                     {
-                        
                         if (playerBPile.Peek() == "J" || playerBPile.Peek() == "Q" ||
                             playerBPile.Peek() == "K" || playerBPile.Peek() == "A")
                         {
@@ -146,50 +192,49 @@ public static class Camicia
                             isPlayerBPayingPenalty = false;
                             lastPlayedCardByPlayerB = playerBPile.Dequeue(); // Remove from player B's deck
                             centralPile.Enqueue(lastPlayedCardByPlayerB); // Put the removed card in the central pile
-                            playerATurn = true;
+                            displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
                             playerBTurn = false;
+                            playerATurn = true;
                             break;
                         }
-                        playerBTurn = true; // maybe not necessary
-                        playerATurn = false; // maybe not necessary
-                        playerBPenalty -= 1;
-                        //if (playerBPenalty <= 0)
-                        //{
-                        //    isPlayerBPayingPenalty = false;
-                        //}
-                        lastPlayedCardByPlayerB = playerBPile.Dequeue(); // Remove from player B's deck
-                        centralPile.Enqueue(lastPlayedCardByPlayerB); // Put the removed card in the central pile
-                        displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
-                    
+                        else if (playerBPenalty == 1) // this means the player is going to be able to pay their penalty without being interrupted (next card is number card)
+                        {
+                            lastPlayedCardByPlayerB = playerBPile.Dequeue(); // Remove from player B's deck
+                            centralPile.Enqueue(lastPlayedCardByPlayerB); // Put the removed card in the central pile
+                            playerBPenalty--;
+                            isPlayerBPayingPenalty = false;
+                            displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                            playerBTurn = false;
+                            playerATurn = true;
+                            playerAShouldTakeCentralPile = true;
+                        }
+                        else
+                        {
+                            playerBPenalty--;
+                            //if (playerBPenalty <= 0)
+                            //{
+                            //    isPlayerBPayingPenalty = false;
+                            //}
+                            lastPlayedCardByPlayerB = playerBPile.Dequeue(); // Remove from player B's deck
+                            centralPile.Enqueue(lastPlayedCardByPlayerB); // Put the removed card in the central pile
+                            displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                        }
                     }
                 }
                 else if (!isPlayerBPayingPenalty && playerBTurn)
                 {
                     lastPlayedCardByPlayerB = playerBPile.Dequeue(); // Remove from player B's deck
                     centralPile.Enqueue(lastPlayedCardByPlayerB); // Put the removed card in the central pile
+                    displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
                     playerBTurn = false;
                     playerATurn = true;
                 }
             }
         }
 
-
-        // If the player paying penalty reveals another payment card
-        // Then that player stops paying penalty, and the other player must pay the penalty
-        // Of the new payment card
-
-        // If a penalty is paid in full without interruption, then the player who drew the payment 
-        // card will collect the central pile (i.e. a 'trick') and place it at the bottom of their deck. This player
-        // then starts the next round
-
-        // If a player runs out of cards, the other player collects the central pile
-
-        // If one player has all the cards in their hand after a trick, they win
-
-        //The game enters a loop as soon as the decks are identical to what they were earlier 
-        // during the game, not counting number cards
-
-        return new GameResult(GameStatus.Finished, 0, 0);
+        int tricks = round++;
+        Console.WriteLine($"Status is {status} tricks: {tricks} Cards {numOfCards}");
+        return new GameResult(status, tricks, numOfCards);
     }
 
     public static void displayRow(int round, Queue<string> playerAPile, Queue<string> playerBPile, Queue<string> centralPile, int playerAPenalty, int playerBPenalty, bool isPlayerAPayingPenalty, bool isPlayerBPayingPenalty)
@@ -220,3 +265,18 @@ public static class Camicia
         Console.ReadLine();
     }
 }
+
+// If the player paying penalty reveals another payment card
+// Then that player stops paying penalty, and the other player must pay the penalty
+// Of the new payment card
+
+// If a penalty is paid in full without interruption, then the player who drew the payment 
+// card will collect the central pile (i.e. a 'trick') and place it at the bottom of their deck. This player
+// then starts the next round
+
+// If a player runs out of cards, the other player collects the central pile
+
+// If one player has all the cards in their hand after a trick, they win
+
+//The game enters a loop as soon as the decks are identical to what they were earlier 
+// during the game, not counting number cards
