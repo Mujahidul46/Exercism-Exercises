@@ -1,5 +1,18 @@
-﻿// fix cards and tricks count
-// fix bug in game 1
+﻿// RULES --> https://exercism.org/tracks/csharp/exercises/camicia
+// If the player paying penalty reveals another payment card
+// Then that player stops paying penalty, and the other player must pay the penalty
+// Of the new payment card
+
+// If a penalty is paid in full without interruption, then the player who drew the payment 
+// card will collect the central pile (i.e. a 'trick') and place it at the bottom of their deck. This player
+// then starts the next round
+
+// If a player runs out of cards, the other player collects the central pile
+
+// If one player has all the cards in their hand after a trick, they win
+
+//The game enters a loop as soon as the decks are identical to what they were earlier 
+// during the game, not counting number cards
 
 public static class Camicia
 {
@@ -68,45 +81,6 @@ public static class Camicia
 
         while (gameActive)
         {
-            if (playerAPile.Count == 0 && isPlayerAPayingPenalty) // code inside here can be its own method
-            {
-                gameActive = false;
-                while (centralPile.Count > 0)
-                {
-                    string lastCardRemovedFromCentralPile = centralPile.Dequeue();
-                    playerBPile.Enqueue(lastCardRemovedFromCentralPile);
-                }
-                round += 1;
-                status = GameStatus.Finished;
-                gameActive = false;
-                displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
-                if (isLoopFound(playerAPile, playerBPile, seenGameStates))
-                {
-                    status = GameStatus.Loop;
-                    gameActive = false;
-                }
-                break;
-            }
-            else if (playerBPile.Count == 0 && isPlayerBPayingPenalty) // code inside here can be its own method
-            {
-                gameActive = false;
-                while (centralPile.Count > 0)
-                {
-                    string lastCardRemovedFromCentralPile = centralPile.Dequeue();
-                    playerAPile.Enqueue(lastCardRemovedFromCentralPile);
-                }
-                round += 1;
-                status = GameStatus.Finished;
-                gameActive = false;
-                displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
-                if (isLoopFound(playerAPile, playerBPile, seenGameStates))
-                {
-                    status = GameStatus.Loop;
-                    gameActive = false;
-                }
-                break;
-            }
-
             if (playerATurn)
             {
                 if (playerAShouldTakeCentralPile)
@@ -119,6 +93,12 @@ public static class Camicia
                     playerAShouldTakeCentralPile = false;
                     round++;
                     displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                    if (checkIfOnePlayerHasAllCards(playerAPile, playerBPile, centralPile))
+                    {
+                        status = GameStatus.Finished;
+                        gameActive = false;
+                        break;
+                    }
                     if (isLoopFound(playerAPile, playerBPile, seenGameStates))
                     {
                         status = GameStatus.Loop;
@@ -220,6 +200,12 @@ public static class Camicia
                     round++;
                     playerBShouldTakeCentralPile = false;
                     displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                    if (checkIfOnePlayerHasAllCards(playerAPile, playerBPile, centralPile))
+                    {
+                        status = GameStatus.Finished;
+                        gameActive = false;
+                        break;
+                    }
                     if (isLoopFound(playerAPile, playerBPile, seenGameStates))
                     {
                         status = GameStatus.Loop;
@@ -279,10 +265,6 @@ public static class Camicia
                         else
                         {
                             playerBPenalty--;
-                            //if (playerBPenalty <= 0)
-                            //{
-                            //    isPlayerBPayingPenalty = false;
-                            //}
                             lastPlayedCardByPlayerB = playerBPile.Dequeue(); // Remove from player B's deck
                             numOfCards += 1;
                             centralPile.Enqueue(lastPlayedCardByPlayerB); // Put the removed card in the central pile
@@ -385,19 +367,9 @@ public static class Camicia
 
         return gameState;
     }
+
+    public static bool checkIfOnePlayerHasAllCards(Queue<string> playerAPile, Queue<string> playerBPile, Queue<string> centralPile)
+    {
+        return (playerAPile.Count == 0 && centralPile.Count == 0) || (playerBPile.Count == 0 && centralPile.Count == 0);
+    }
 }
-
-// If the player paying penalty reveals another payment card
-// Then that player stops paying penalty, and the other player must pay the penalty
-// Of the new payment card
-
-// If a penalty is paid in full without interruption, then the player who drew the payment 
-// card will collect the central pile (i.e. a 'trick') and place it at the bottom of their deck. This player
-// then starts the next round
-
-// If a player runs out of cards, the other player collects the central pile
-
-// If one player has all the cards in their hand after a trick, they win
-
-//The game enters a loop as soon as the decks are identical to what they were earlier 
-// during the game, not counting number cards
