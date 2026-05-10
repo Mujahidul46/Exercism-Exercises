@@ -39,7 +39,7 @@ public static class Camicia
         Queue<string> playerBPile = new Queue<string>(playerB);
         Queue<string> centralPile = new Queue<string>();
 
-        int numOfCards = playerAPile.Count + playerBPile.Count;
+        int numOfCards = 0;
 
         int playerAPenalty = 0;
         int playerBPenalty = 0;
@@ -54,7 +54,7 @@ public static class Camicia
         bool playerBShouldTakeCentralPile = false;
 
 
-        GameStatus status = GameStatus.Finished; // default value
+        GameStatus status = GameStatus.Finished;
 
         HashSet<string> seenGameStates = new HashSet<string>();
 
@@ -68,7 +68,7 @@ public static class Camicia
 
         while (gameActive)
         {
-            if (playerAPile.Count == 0 && isPlayerAPayingPenalty)
+            if (playerAPile.Count == 0 && isPlayerAPayingPenalty) // code inside here can be its own method
             {
                 gameActive = false;
                 while (centralPile.Count > 0)
@@ -87,7 +87,7 @@ public static class Camicia
                 }
                 break;
             }
-            else if (playerBPile.Count == 0 && isPlayerBPayingPenalty)
+            else if (playerBPile.Count == 0 && isPlayerBPayingPenalty) // code inside here can be its own method
             {
                 gameActive = false;
                 while (centralPile.Count > 0)
@@ -144,6 +144,7 @@ public static class Camicia
                             isPlayerBPayingPenalty = true;
                             isPlayerAPayingPenalty = false;
                             lastPlayedCardByPlayerA = playerAPile.Dequeue(); // Remove from player A's deck
+                            numOfCards += 1;
                             centralPile.Enqueue(lastPlayedCardByPlayerA); // Put the removed card in the central pile
                             displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
                             if (isLoopFound(playerAPile, playerBPile, seenGameStates))
@@ -156,9 +157,10 @@ public static class Camicia
                             playerBTurn = true;
                             break;
                         }
-                        else if (playerAPenalty == 1) // this means the player is going to be able to pay their penalty without being interrupted (next card is number card)
+                        else if (playerAPenalty == 1) // this means the player is going to be able to pay their penalty without being interrupted (next card is number card). Therefore, the other player will get the center pile.
                         {
                             lastPlayedCardByPlayerA = playerAPile.Dequeue(); // Remove from player A's deck
+                            numOfCards += 1;
                             centralPile.Enqueue(lastPlayedCardByPlayerA); // Put the removed card in the central pile
                             playerAPenalty--;
                             isPlayerAPayingPenalty = false;
@@ -173,14 +175,11 @@ public static class Camicia
                             playerBTurn = true;
                             playerBShouldTakeCentralPile = true;
                         }
-                        else
+                        else // Player has a number card
                         {
                             playerAPenalty--;
-                            //if (playerAPenalty <= 0)
-                            //{
-                            //    isPlayerAPayingPenalty = false;
-                            //}
                             lastPlayedCardByPlayerA = playerAPile.Dequeue(); // Remove from player A's deck
+                            numOfCards += 1;
                             centralPile.Enqueue(lastPlayedCardByPlayerA); // Put the removed card in the central pile
                             displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
                             if (isLoopFound(playerAPile, playerBPile, seenGameStates))
@@ -195,6 +194,7 @@ public static class Camicia
                 else if (!isPlayerAPayingPenalty && playerATurn)
                 {
                     lastPlayedCardByPlayerA = playerAPile.Dequeue(); // Remove from player A's deck
+                    numOfCards += 1;
                     centralPile.Enqueue(lastPlayedCardByPlayerA); // Put the removed card in the central pile
                     displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
                     if (isLoopFound(playerAPile, playerBPile, seenGameStates))
@@ -207,8 +207,7 @@ public static class Camicia
                     playerBTurn = true;
                 }
             }
-
-            // REVERSE ABOVE LOGIC
+            // PLAYER B
             else if (playerBTurn)
             {
                 if (playerBShouldTakeCentralPile)
@@ -246,6 +245,7 @@ public static class Camicia
                             isPlayerAPayingPenalty = true;
                             isPlayerBPayingPenalty = false;
                             lastPlayedCardByPlayerB = playerBPile.Dequeue(); // Remove from player B's deck
+                            numOfCards += 1;
                             centralPile.Enqueue(lastPlayedCardByPlayerB); // Put the removed card in the central pile
                             displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
                             if (isLoopFound(playerAPile, playerBPile, seenGameStates))
@@ -261,6 +261,7 @@ public static class Camicia
                         else if (playerBPenalty == 1) // this means the player is going to be able to pay their penalty without being interrupted (next card is number card)
                         {
                             lastPlayedCardByPlayerB = playerBPile.Dequeue(); // Remove from player B's deck
+                            numOfCards += 1;
                             centralPile.Enqueue(lastPlayedCardByPlayerB); // Put the removed card in the central pile
                             playerBPenalty--;
                             isPlayerBPayingPenalty = false;
@@ -283,6 +284,7 @@ public static class Camicia
                             //    isPlayerBPayingPenalty = false;
                             //}
                             lastPlayedCardByPlayerB = playerBPile.Dequeue(); // Remove from player B's deck
+                            numOfCards += 1;
                             centralPile.Enqueue(lastPlayedCardByPlayerB); // Put the removed card in the central pile
                             displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
                             if (isLoopFound(playerAPile, playerBPile, seenGameStates))
@@ -297,6 +299,7 @@ public static class Camicia
                 else if (!isPlayerBPayingPenalty && playerBTurn)
                 {
                     lastPlayedCardByPlayerB = playerBPile.Dequeue(); // Remove from player B's deck
+                    numOfCards += 1;
                     centralPile.Enqueue(lastPlayedCardByPlayerB); // Put the removed card in the central pile
                     displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
                     if (isLoopFound(playerAPile, playerBPile, seenGameStates))
