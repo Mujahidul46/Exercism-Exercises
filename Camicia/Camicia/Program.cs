@@ -314,7 +314,7 @@ public static class Camicia
             }
         }
 
-        int tricks = round++;
+        int tricks = round - 1;
         Console.WriteLine($"Status is {status} tricks: {tricks} Cards {numOfCards}");
         return new GameResult(status, tricks, numOfCards);
     }
