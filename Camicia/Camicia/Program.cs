@@ -1,4 +1,5 @@
-﻿// TODO: Detect a loop
+﻿// fix cards and tricks count
+// fix bug in game 1
 
 public static class Camicia
 {
@@ -52,12 +53,18 @@ public static class Camicia
         bool playerAShouldTakeCentralPile = false;
         bool playerBShouldTakeCentralPile = false;
 
+
         GameStatus status = GameStatus.Finished; // default value
 
+        HashSet<string> seenGameStates = new HashSet<string>();
 
         Console.WriteLine("round |     Player A     |      Player B      |      Pile       |     Penalty Due      ");
 
         displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+        if (isLoopFound(playerAPile, playerBPile, seenGameStates))
+        {
+            gameActive = false;
+        }
 
         while (gameActive)
         {
@@ -71,7 +78,13 @@ public static class Camicia
                 }
                 round += 1;
                 status = GameStatus.Finished;
+                gameActive = false;
                 displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                if (isLoopFound(playerAPile, playerBPile, seenGameStates))
+                {
+                    status = GameStatus.Loop;
+                    gameActive = false;
+                }
                 break;
             }
             else if (playerBPile.Count == 0 && isPlayerBPayingPenalty)
@@ -84,7 +97,13 @@ public static class Camicia
                 }
                 round += 1;
                 status = GameStatus.Finished;
+                gameActive = false;
                 displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                if (isLoopFound(playerAPile, playerBPile, seenGameStates))
+                {
+                    status = GameStatus.Loop;
+                    gameActive = false;
+                }
                 break;
             }
 
@@ -100,6 +119,12 @@ public static class Camicia
                     playerAShouldTakeCentralPile = false;
                     round++;
                     displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                    if (isLoopFound(playerAPile, playerBPile, seenGameStates))
+                    {
+                        status = GameStatus.Loop;
+                        gameActive = false;
+                        break;
+                    }
                 }
                 else if (playerAPile.Peek() == "J" || playerAPile.Peek() == "Q" ||
                     playerAPile.Peek() == "K" || playerAPile.Peek() == "A")
@@ -121,6 +146,12 @@ public static class Camicia
                             lastPlayedCardByPlayerA = playerAPile.Dequeue(); // Remove from player A's deck
                             centralPile.Enqueue(lastPlayedCardByPlayerA); // Put the removed card in the central pile
                             displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                            if (isLoopFound(playerAPile, playerBPile, seenGameStates))
+                            {
+                                status = GameStatus.Loop;
+                                gameActive = false;
+                                break;
+                            }
                             playerATurn = false;
                             playerBTurn = true;
                             break;
@@ -132,6 +163,12 @@ public static class Camicia
                             playerAPenalty--;
                             isPlayerAPayingPenalty = false;
                             displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                            if (isLoopFound(playerAPile, playerBPile, seenGameStates))
+                            {
+                                status = GameStatus.Loop;
+                                gameActive = false;
+                                break;
+                            }
                             playerATurn = false;
                             playerBTurn = true;
                             playerBShouldTakeCentralPile = true;
@@ -146,6 +183,12 @@ public static class Camicia
                             lastPlayedCardByPlayerA = playerAPile.Dequeue(); // Remove from player A's deck
                             centralPile.Enqueue(lastPlayedCardByPlayerA); // Put the removed card in the central pile
                             displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                            if (isLoopFound(playerAPile, playerBPile, seenGameStates))
+                            {
+                                status = GameStatus.Loop;
+                                gameActive = false;
+                                break;
+                            }
                         }
                     }
                 }
@@ -154,6 +197,12 @@ public static class Camicia
                     lastPlayedCardByPlayerA = playerAPile.Dequeue(); // Remove from player A's deck
                     centralPile.Enqueue(lastPlayedCardByPlayerA); // Put the removed card in the central pile
                     displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                    if (isLoopFound(playerAPile, playerBPile, seenGameStates))
+                    {
+                        status = GameStatus.Loop;
+                        gameActive = false;
+                        break;
+                    }
                     playerATurn = false;
                     playerBTurn = true;
                 }
@@ -172,6 +221,12 @@ public static class Camicia
                     round++;
                     playerBShouldTakeCentralPile = false;
                     displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                    if (isLoopFound(playerAPile, playerBPile, seenGameStates))
+                    {
+                        status = GameStatus.Loop;
+                        gameActive = false;
+                        break;
+                    }
                 }
                 else if (playerBPile.Peek() == "J" || playerBPile.Peek() == "Q" ||
                     playerBPile.Peek() == "K" || playerBPile.Peek() == "A")
@@ -193,6 +248,12 @@ public static class Camicia
                             lastPlayedCardByPlayerB = playerBPile.Dequeue(); // Remove from player B's deck
                             centralPile.Enqueue(lastPlayedCardByPlayerB); // Put the removed card in the central pile
                             displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                            if (isLoopFound(playerAPile, playerBPile, seenGameStates))
+                            {
+                                status = GameStatus.Loop;
+                                gameActive = false;
+                                break;
+                            }
                             playerBTurn = false;
                             playerATurn = true;
                             break;
@@ -204,6 +265,12 @@ public static class Camicia
                             playerBPenalty--;
                             isPlayerBPayingPenalty = false;
                             displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                            if (isLoopFound(playerAPile, playerBPile, seenGameStates))
+                            {
+                                status = GameStatus.Loop;
+                                gameActive = false;
+                                break;
+                            }
                             playerBTurn = false;
                             playerATurn = true;
                             playerAShouldTakeCentralPile = true;
@@ -218,6 +285,12 @@ public static class Camicia
                             lastPlayedCardByPlayerB = playerBPile.Dequeue(); // Remove from player B's deck
                             centralPile.Enqueue(lastPlayedCardByPlayerB); // Put the removed card in the central pile
                             displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                            if (isLoopFound(playerAPile, playerBPile, seenGameStates))
+                            {
+                                status = GameStatus.Loop;
+                                gameActive = false;
+                                break;
+                            }
                         }
                     }
                 }
@@ -226,6 +299,12 @@ public static class Camicia
                     lastPlayedCardByPlayerB = playerBPile.Dequeue(); // Remove from player B's deck
                     centralPile.Enqueue(lastPlayedCardByPlayerB); // Put the removed card in the central pile
                     displayRow(round, playerAPile, playerBPile, centralPile, playerAPenalty, playerBPenalty, isPlayerAPayingPenalty, isPlayerBPayingPenalty);
+                    if (isLoopFound(playerAPile, playerBPile, seenGameStates))
+                    {
+                        status = GameStatus.Loop;
+                        gameActive = false;
+                        break;
+                    }
                     playerBTurn = false;
                     playerATurn = true;
                 }
@@ -263,6 +342,45 @@ public static class Camicia
         Console.WriteLine();
         Console.WriteLine("Press ENTER to continue");
         Console.ReadLine();
+    }
+
+    public static bool isLoopFound(Queue<string> playerAPile, Queue<string> playerBPile, HashSet<string> seenGameStates)
+    {
+        string gameState = getGameState(playerAPile, playerBPile);
+        if (!seenGameStates.Add(gameState))
+        {
+            return true;
+        }
+        return false;
+    }
+
+    public static string getGameState(Queue<string> playerAPile, Queue<string> playerBPile) // J23 4J5 will be JXX XJX
+    {
+        string gameState = "";
+
+        foreach (string card in playerAPile)
+        {
+            gameState += card;
+        }
+
+        gameState += " ";
+
+        foreach (string card in playerBPile)
+        {
+            gameState += card;
+        }
+
+        gameState = gameState.Replace("2", "X")
+                             .Replace("3", "X")
+                             .Replace("4", "X")
+                             .Replace("5", "X")
+                             .Replace("6", "X")
+                             .Replace("7", "X")
+                             .Replace("8", "X")
+                             .Replace("9", "X")
+                             .Replace("10", "X");
+
+        return gameState;
     }
 }
 
